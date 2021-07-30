@@ -1,27 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Byline
 import Control.Applicative
-import Data.Text
+import Control.Monad.IO.Class
+import Data.Text as T
 import Options.Applicative
+import RtmAPI
 
 data Cmd =
     LsAll
+  | Configure
   | Query Text
   deriving (Show, Eq, Ord)
 
 argParser :: Parser Cmd
-argParser = lsAll <|> qry
-
-lsAll :: Parser Cmd
-lsAll = flag' LsAll (long "list" <> help "list all tasks" )
+argParser = subparser
+  (  command "configure" (info (pure Configure) (progDesc "configure application access (mostly just for first time use)"))
+  <> command "list" (info (pure LsAll) (progDesc "list all tasks"))
+  <> command "query" (info qry (progDesc "query for specific tasks"))
+  )
 
 qry :: Parser Cmd
-qry = Query <$> strOption
-  ( long "query"
-  <> short 'q'
-  <> metavar "TEXT"
-  <> help "Query Tasks" )
+qry = Query <$> argument str (metavar "QUERY")
 
 opts :: ParserInfo Cmd
 opts = info (argParser <**> helper)
@@ -32,5 +33,35 @@ opts = info (argParser <**> helper)
 main :: IO ()
 main = do
   args <- execParser opts
-  putStrLn $ show args
+  -- configure
+  list
+
+configure :: IO ()
+configure = do
+  let secret = "10fa10b9a5f290fe"
+      apiKey = "76cd370db1c53c387a1aaec1058ffaba"
+  frob <- getFrob secret apiKey
+  case frob of
+      Nothing -> do
+        runBylineT $ sayLn ("Failed generating login url" <> fg red)
+        pure ()
+      Just (Frob f') -> do
+        let loginurl = buildLoginUrl secret apiKey f'
+        runBylineT $ do
+          sayLn (("Please visit following URL to login: " <> fg green) <> (text loginurl <> fg red))
+          askLn ("Press enter when done!" <> fg blue) Nothing
+          pure ()
+
+        resp <- getToken secret apiKey f'
+        putStrLn $ show resp
+  pure ()
+
+list :: IO ()
+list = do
+  let secret = "10fa10b9a5f290fe"
+      apiKey = "76cd370db1c53c387a1aaec1058ffaba"
+      token = "b8a07b913f0bdb15f7e09b3c3f9fa1c4454d1cf7"
+      filter = "dueBefore:tomorrow NOT status:complete" :: Text
+  ts <- getTasks secret apiKey token filter
+  putStrLn $ show $ ts
 
