@@ -17,6 +17,8 @@ executable rmm
                     , optparse-applicative ^>=0.16.1.0
                     , byline ^>=1.1.1
                     , rmm-lib
+                    , filepath
+                    , config-schema
     hs-source-dirs:   app
     default-language: Haskell2010
 
