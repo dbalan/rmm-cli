@@ -34,10 +34,6 @@ buildLoginUrl secret apiKey frob = "https://www.rememberthemilk.com/services/aut
     p = fmap (\(k,v) -> k <> "=" <> v) (params <> [sig])
 
 -- | sign API params
--- TODO we pull cryptonite anyway
--- TODO: 1. sort api params
--- add shared secret
--- md5
 sign :: Text -> [(Text, Text)] -> Text
 sign secret params = T.pack $ show $ hashWith MD5 (TE.encodeUtf8 payload)
   where
