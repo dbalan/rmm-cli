@@ -4,67 +4,21 @@
 
 module Main where
 
-import           Byline
-import           Config.Schema
-import           Control.Applicative
-import           Control.Exception (throw, try)
-import           Control.Monad.IO.Class
-import           Control.Monad.Reader
-import           Data.Text as T
-import qualified Data.Text.IO as TIO
-import           Options.Applicative
-import           RtmAPI
-import           System.FilePath
-import           Types
+import Byline
 
-data Cmd =
-    LsAll
-  | Configure
-  | Query Text
-  deriving (Show, Eq)
+import Control.Applicative
+import Control.Exception (throw, try)
+import Control.Monad.Reader
+import Data.Text as T
 
-data Args = Args
-  { config :: FilePath
-  , cmd :: Cmd }
-  deriving (Show, Eq)
-
-configSpec :: ValueSpec Config
-configSpec = sectionsSpec "" $ do
-  cfApikey <- reqSection "apikey" "API key of the Application"
-  cfSecret <- reqSection "secret" "API shared secret"
-  cfToken <- reqSection "token" "Application token"
-  pure Config{..}
-
-cmdParser :: Parser Cmd
-cmdParser = subparser
-  (  command "configure" (info (pure Configure) (progDesc "configure application access (mostly just for first time use)"))
-  <> command "list" (info (pure LsAll) (progDesc "list all tasks"))
-  <> command "query" (info qry (progDesc "query for specific tasks"))
-  )
-
-qry :: Parser Cmd
-qry = Query <$> argument str (metavar "QUERY")
-
--- Applicative do is magic
-argParser :: Parser Args
-argParser = do
-  config <- strOption
-              ( long "config-file"
-             <> short 'c'
-             <> metavar "FILE"
-             <> value "/home/dj/.config/rmm/config.ini" )
-  cmd <- cmdParser
-  pure Args{..}
-
-opts :: ParserInfo Args
-opts = info (argParser <**> helper)
-  ( fullDesc
-  <> progDesc "CLI Companion for RTM"
-  <> header "So that you don't have to remember" )
+import ArgParse
+import ConfigParser
+import RtmAPI
+import Types
 
 readConfig :: FilePath -> IO Config
 readConfig path = do
-  cfg <- try $ loadValueFromFile configSpec path
+  cfg <- loadConfig path
   case (cfg :: Either IOError Config) of
     Left e -> do
       -- no config file, ask user to run configurn
@@ -73,17 +27,9 @@ readConfig path = do
       throw e
     Right cfg' -> pure cfg'
 
-writeConfig :: FilePath -> Text -> Text -> Text -> IO ()
-writeConfig path apikey secret token = do
-  let c' =
-        "apikey: \"" <> apikey <> "\"\n" <>
-        "secret: \"" <> secret <> "\"\n" <>
-        "token:  \"" <> token <> "\"\n"
-  TIO.writeFile path c'
-
 main :: IO ()
 main = do
-  args <- execParser opts
+  args <- parseArgs
   -- read config
   let path = config args
   case (cmd args) of
@@ -121,9 +67,4 @@ configure path = do
             runBylineT $ sayLn ("Something terrible" <> fg red)
             pure ()
 
-
-list :: Config -> Text -> IO ()
-list cfg filter = do
-  ts <- getTasks (cfSecret cfg) (cfApikey cfg) (cfToken cfg) filter
-  putStrLn $ show $ ts
 
