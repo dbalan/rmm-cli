@@ -4,12 +4,15 @@ module RtmAPI
   , getFrob
   , getToken
   , getTasks
+  , queryTasks
   , Response(..)
   )
 where
 
 import           Control.Lens
 import           Control.Monad.IO.Class
+
+import           Control.Monad.Reader
 import           Crypto.Hash
 import           Data.Aeson
 import           Data.Aeson.Lens
@@ -18,6 +21,7 @@ import           Data.Sort (sortOn)
 import           Data.Text as T
 import qualified Data.Text.Encoding as TE
 import           Network.HTTP.Req
+import           Types
 
 -- | Build login URL from an API key, this following the process descrbed in
 -- https://www.rememberthemilk.com/services/api/authentication.rtm
@@ -107,16 +111,21 @@ getTasks secret apiKey token filter = runReq defaultHttpConfig $ do
   r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody bsResponse opts
   liftIO $ pure (responseBody r :: ByteString)
 
-{-
-type RtmAPI = ReaderT Config IO a
+commonParams :: Config -> Method -> [(Text, Text)]
+commonParams cfg (Method m) = [("api_key", cfApikey cfg), ("auth_token", cfToken cfg), ("format", "json"), ("method", m)]
 
-makeRequest :: Method -> [Params] -> RtmAPI (Maybe Response)
-makeRequest = do
+makeRequest :: Method -> [(Text, Text)] -> RtmApiM (ByteString)
+makeRequest m params = do
   cfg <- ask
-  let fullParams = sort (params ++ commonParams cfg)
+  let fullParams = sortOn fst (params ++ commonParams cfg m)
       sig = sign (cfSecret cfg) fullParams
-      sigParams = fullParams <> Param "api_sig" sig
+      sigparams = fullParams <> [("api_sig", sig)]
       opts = Prelude.foldl (<>) mempty $ fmap (uncurry (=:)) sigparams :: Option https
-  r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody jsonResponse opts
-  liftIO $ pure (responseBody r)
--}
+  runReq defaultHttpConfig $ do
+    r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody bsResponse opts
+    liftIO $ pure (responseBody r)
+
+
+queryTasks :: Text -> RtmApiM ByteString
+queryTasks q = makeRequest (Method "rtm.tasks.getList") [("filter", q)]
+

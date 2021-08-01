@@ -19,6 +19,7 @@ executable rmm
                     , rmm-lib
                     , filepath
                     , config-schema
+                    , mtl
     hs-source-dirs:   app
     default-language: Haskell2010
 
@@ -35,6 +36,7 @@ test-suite rmm-test
 
 library rmm-lib
     exposed-modules:  RtmAPI
+                    , Types
     build-depends:    base ^>=4.14.1.0
                     , text
                     , bytestring ^>=0.11.1.0
@@ -44,5 +46,6 @@ library rmm-lib
                     , aeson
                     , lens
                     , aeson-lens
+                    , mtl
     hs-source-dirs:   lib
     default-language: Haskell2010

@@ -9,12 +9,13 @@ import           Config.Schema
 import           Control.Applicative
 import           Control.Exception (throw, try)
 import           Control.Monad.IO.Class
+import           Control.Monad.Reader
 import           Data.Text as T
 import qualified Data.Text.IO as TIO
 import           Options.Applicative
 import           RtmAPI
 import           System.FilePath
-
+import           Types
 
 data Cmd =
     LsAll
@@ -25,12 +26,6 @@ data Cmd =
 data Args = Args
   { config :: FilePath
   , cmd :: Cmd }
-  deriving (Show, Eq)
-
-data Config = Config
-  { cfApikey :: Text
-  , cfSecret :: Text
-  , cfToken :: Text }
   deriving (Show, Eq)
 
 configSpec :: ValueSpec Config
@@ -94,11 +89,15 @@ main = do
   case (cmd args) of
     Configure -> configure path
     LsAll     -> readConfig path >>= (flip list) "dueBefore:tomorrow NOT status:complete"
-    Query q   -> readConfig path >>= (flip list) q
+    Query q   -> do
+      cfg <- readConfig path
+      t <- runReaderT (runRtmApiM $ queryTasks q) cfg
+      putStrLn $ show t
 
 
 configure :: FilePath -> IO ()
 configure path = do
+  -- hard coded application keys, its fine. :|
   let secret = "10fa10b9a5f290fe" :: Text
       apiKey = "76cd370db1c53c387a1aaec1058ffaba" :: Text
   frob <- getFrob secret apiKey
