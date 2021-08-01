@@ -107,3 +107,16 @@ getTasks secret apiKey token filter = runReq defaultHttpConfig $ do
   r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody bsResponse opts
   liftIO $ pure (responseBody r :: ByteString)
 
+{-
+type RtmAPI = ReaderT Config IO a
+
+makeRequest :: Method -> [Params] -> RtmAPI (Maybe Response)
+makeRequest = do
+  cfg <- ask
+  let fullParams = sort (params ++ commonParams cfg)
+      sig = sign (cfSecret cfg) fullParams
+      sigParams = fullParams <> Param "api_sig" sig
+      opts = Prelude.foldl (<>) mempty $ fmap (uncurry (=:)) sigparams :: Option https
+  r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody jsonResponse opts
+  liftIO $ pure (responseBody r)
+-}

@@ -74,9 +74,8 @@ readConfig path = do
     Left e -> do
       -- no config file, ask user to run configurn
       runBylineT $ sayLn (("Configuration file not found at: " <> text (T.pack . show $ path) <> fg red)
-                        <> "\nRunning configure")
-      configure path
-      readConfig path
+                        <> "\nPlease run configure")
+      throw e
     Right cfg' -> pure cfg'
 
 writeConfig :: FilePath -> Text -> Text -> Text -> IO ()
@@ -91,11 +90,11 @@ main :: IO ()
 main = do
   args <- execParser opts
   -- read config
-  cfg <- readConfig (config args)
+  let path = config args
   case (cmd args) of
-    Configure -> configure (config $ args)
-    LsAll     -> list cfg "dueBefore:tomorrow NOT status:complete"
-    Query q   -> list cfg q
+    Configure -> configure path
+    LsAll     -> readConfig path >>= (flip list) "dueBefore:tomorrow NOT status:complete"
+    Query q   -> readConfig path >>= (flip list) q
 
 
 configure :: FilePath -> IO ()
