@@ -13,11 +13,13 @@ import           Control.Monad.IO.Class
 
 import           Control.Monad.Reader
 import           Crypto.Hash
+import           Data.Aeson (FromJSON)
 import           Data.ByteString (ByteString)
 import           Data.Sort (sortOn)
 import           Data.Text as T
 import qualified Data.Text.Encoding as TE
 import           Network.HTTP.Req
+
 import           Types
 
 -- | Build login URL from an API key, this following the process descrbed in
@@ -75,7 +77,7 @@ getTasks secret apiKey token qry = runReq defaultHttpConfig $ do
 commonParams :: Config -> Method -> [(Text, Text)]
 commonParams cfg (Method m) = [("api_key", cfApikey cfg), ("auth_token", cfToken cfg), ("format", "json"), ("method", m)]
 
-makeRequest :: Method -> [(Text, Text)] -> RtmApiM (ByteString)
+makeRequest :: (Show a, FromJSON a) => Method -> [(Text, Text)] -> RtmApiM a
 makeRequest m params = do
   cfg <- ask
   let fullParams = sortOn fst (params ++ commonParams cfg m)
@@ -83,10 +85,9 @@ makeRequest m params = do
       sigparams = fullParams <> [("api_sig", sig)]
       opts = Prelude.foldl (<>) mempty $ fmap (uncurry (=:)) sigparams :: Option https
   runReq defaultHttpConfig $ do
-    r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody bsResponse opts
+    r <- req GET (https "api.rememberthemilk.com" /: "services" /: "rest") NoReqBody jsonResponse opts
     liftIO $ pure (responseBody r)
 
-
-queryTasks :: Text -> RtmApiM ByteString
+queryTasks :: Text -> RtmApiM (APIResponse TaskListResp)
 queryTasks q = makeRequest (Method "rtm.tasks.getList") [("filter", q)]
 

@@ -22,12 +22,12 @@ qry = Query <$> argument str (metavar "QUERY")
 -- Applicative do is magic
 argParser :: Parser Args
 argParser = do
-  config <- strOption
+  argConfig <- strOption
               ( long "config-file"
              <> short 'c'
              <> metavar "FILE"
              <> value "/home/dj/.config/rmm/config.ini" )
-  cmd <- cmdParser
+  argCmd <- cmdParser
   pure Args{..}
 
 opts :: ParserInfo Args

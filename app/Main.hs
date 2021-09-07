@@ -31,8 +31,8 @@ main :: IO ()
 main = do
   args <- parseArgs
   -- read config
-  let path = config args
-  case cmd args of
+  let path = argConfig args
+  case argCmd args of
     Configure -> configure path
     LsAll     -> do
       cfg <- readConfig path
@@ -42,7 +42,6 @@ main = do
       cfg <- readConfig path
       t <- runReaderT (runRtmApiM $ queryTasks q) cfg
       print t
-
 
 -- TODO: wrap in eitherT
 configure :: FilePath -> IO ()
