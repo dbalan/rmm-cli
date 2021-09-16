@@ -1,17 +1,17 @@
 ## RememberClick (Abandoned)
 
-**Not useful to you**
+**Not useful for most people**
 
 This was an attemt to see if I can wrap a http API nicely inside a Monad transformer stack. The API being wrapped is [RememberTheMilk](https://www.rememberthemilk.com/services/api/). 
 
-I did get to a useful state where I can express API as
+got to a semi-useful state where I can express API as
 
 ```haskell
 queryTasks :: Text -> RtmApiM (APIResponse TaskListResp)
 queryTasks q = makeRequest (Method "rtm.tasks.getList") [("filter", q)]
 ```
 
-However, finishing this will take too long: The response structures RTM provides is complete bonkers. They are barely documented and I really am not interested going through this pain just to write yet another CLI (not at the moment)
+However, finishing this will take too long: The response structures RTM provides is complete bonkers. They are barely documented, uses nested structures which looks like product of legacy. I am not interested going through this pain just to write yet another CLI (not at the moment)
 
 for e.g: the response from queryTasks is this:
 
