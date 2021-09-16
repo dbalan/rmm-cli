@@ -11,7 +11,7 @@ queryTasks :: Text -> RtmApiM (APIResponse TaskListResp)
 queryTasks q = makeRequest (Method "rtm.tasks.getList") [("filter", q)]
 ```
 
-However, finishing this will take too long: The response structures RTM provides is complete bonkers. They are barely documented and I really am not interested in writing yet another CLI (not at the moment)
+However, finishing this will take too long: The response structures RTM provides is complete bonkers. They are barely documented and I really am not interested going through this pain just to write yet another CLI (not at the moment)
 
 for e.g: the response from queryTasks is this:
 
